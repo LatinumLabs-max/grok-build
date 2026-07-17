@@ -18,6 +18,7 @@ uses the xAI backend for inference.
 | [`../railway.json`](../railway.json) | Railway build/deploy config (Dockerfile builder, restart policy) |
 | [`../.dockerignore`](../.dockerignore) | Trims the build context (keeps `.md` — the CLI embeds its docs) |
 | [`entrypoint.sh`](entrypoint.sh) | Binds `grok agent serve` to `0.0.0.0:$PORT`; requires the two secrets below |
+| [`headless-run.sh`](headless-run.sh) | Headless `grok -p` runner for CI / scripting (JSON output, review-gate mode) |
 | [`grok-home/config.toml`](grok-home/config.toml) | **Your** baked config defaults + theme |
 | [`grok-home/pager.toml`](grok-home/pager.toml) | **Your** baked appearance/layout tweaks |
 
@@ -70,6 +71,59 @@ them and redeploying is all it takes.
   [`grok-home/config.toml`](grok-home/config.toml): default model, feature
   toggles (telemetry off, indexing on), auto-compact threshold, bash timeouts,
   etc. These **do** govern the running server and every session it starts.
+
+## Efficiency features & how to use them
+
+Grok Build is a productivity harness, not just a model endpoint. The scaffolding
+below is what actually saves coding time. Which surface exposes each one depends
+on how you talk to the deployment:
+
+- **Interactive (WebSocket server)** — available to any ACP/WebSocket client you
+  connect to `wss://<domain>`.
+- **Headless (`grok -p`)** — run via [`headless-run.sh`](headless-run.sh) inside
+  the image (`railway run` / `docker exec`) or as a CI template.
+
+| Feature | What it does | Where |
+|---------|--------------|-------|
+| **Codebase graph** | Symbol-level go-to-def / find-refs (Rust/TS/Python/Go) so the agent navigates instead of re-grepping. `[features] codebase_indexing = true` in `config.toml`. | Both |
+| **Subagents** | Fan out `explore` / `plan` / custom agents concurrently. | Both |
+| **Fast worktrees** | Reflink/BTRFS-snapshot worktree pools — run parallel agents/experiments in isolation. `--worktree [NAME]`. | Both |
+| **Checkpoint / rewind** | Per-turn filesystem + git snapshot; undo a bad turn atomically. | Interactive |
+| **Context compaction** | Auto-compacts at `[session] auto_compact_threshold_percent` (85) so long sessions don't fall off a cliff. | Both |
+| **Cross-session memory** | Recall context across sessions (needs `GROK_MEMORY=1`). | Both |
+| **Plan mode** | Plan before editing; `--no-plan` to disable. | Both |
+| **Background tasks + `monitor`** | Durable recurring tasks; stream long-running command output as notifications. | Both |
+| **`--best-of-n N`** | Run a task N ways, keep the best. | Headless only |
+| **`--check` / `--self-verify`** | Append an automatic verification pass. | Headless only |
+| **Structured output** | `--output-format json`, `--json-schema`, tool allow/deny, exact-integer cost accounting. | Headless only |
+
+> The headless-only flags are what make CI review-gates and batch jobs cheap and
+> reliable — see below.
+
+## Headless mode (CI / scripting)
+
+[`headless-run.sh`](headless-run.sh) wraps `grok -p` with clean JSON output and
+a faithful exit code. `stdout` carries only the result; logs go to `stderr`.
+
+```bash
+# One-off analysis (JSON on stdout)
+railway run deploy/headless-run.sh "Summarize what this service does"
+
+# Review-gate: passes (exit 0) only if the response begins with "OK"
+railway run deploy/headless-run.sh --gate \
+  "Review the staged diff for obvious bugs. Reply exactly 'OK' if fine, else list issues."
+
+# Unattended run that may edit files / run commands
+railway run deploy/headless-run.sh --yolo "Run the tests and fix any failures"
+
+# Pass any extra grok flags after --
+railway run deploy/headless-run.sh "Refactor utils" -- --max-turns 20 --tools read_file,grep,search_replace
+```
+
+Inside a running container it's on `PATH` as `headless-run.sh`; in CI you can call
+it directly with `XAI_API_KEY` set. It only needs `XAI_API_KEY` — the WebSocket
+`GROK_AGENT_SECRET` is irrelevant to headless runs. Run `headless-run.sh --help`
+for the full option list. (`--gate` uses `jq`, which is installed in the image.)
 
 ## Session persistence (optional)
 

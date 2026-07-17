@@ -52,6 +52,7 @@ RUN apt-get update \
         curl \
         less \
         ripgrep \
+        jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Run as a non-root user with a stable home.
@@ -69,7 +70,10 @@ COPY --chown=grok:grok deploy/grok-home/pager.toml   /home/grok/.grok/pager.toml
 # The binary and the entrypoint.
 COPY --from=builder /usr/local/bin/grok /usr/local/bin/grok
 COPY --chown=grok:grok deploy/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Headless runner for CI / scripting (grok -p). Available on PATH inside the
+# image so `railway run headless-run.sh ...` / `docker exec` can use it.
+COPY --chown=grok:grok deploy/headless-run.sh /usr/local/bin/headless-run.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/headless-run.sh
 
 # A default working directory for sessions that don't specify their own cwd.
 RUN mkdir -p /workspace && chown grok:grok /workspace
