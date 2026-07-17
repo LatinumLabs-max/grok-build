@@ -1,0 +1,69 @@
+# ============================================================================
+# Grok Build — deployment config (baked into the image at $GROK_HOME/config.toml)
+#
+# This is YOUR customization surface. Edit the values below to your taste and
+# redeploy — Railway rebuilds the image and the new defaults ship with it.
+#
+# Precedence (highest first): CLI flags > env vars > THIS FILE > built-in
+# defaults. So anything you set here can still be overridden per-invocation by
+# a flag or an env var, but it is the default for every session the server
+# starts.
+# ============================================================================
+
+[cli]
+# Containers are immutable — never let the binary try to update itself in place.
+# (Also enforced by GROK_DISABLE_AUTOUPDATER=1 in the image env.)
+auto_update = false
+
+[models]
+# Model used for new sessions. The xAI backend is selected via XAI_API_KEY.
+# To run a different model, either change this or set -m/--model on the client.
+default = "grok-build"
+
+# ----------------------------------------------------------------------------
+# Appearance / colors
+#
+# NOTE: Grok ships FIVE built-in themes; fully custom RGB themes are not
+# supported via config (the theme system owns the color slots internally).
+# Your color choice is therefore "pick a built-in theme" + the finer-grained
+# layout/style tweaks in pager.toml (sibling file).
+#
+#   groknight    — neutral dark, magenta accent (default; 256/16-color safe)
+#   grokday      — light theme
+#   tokyonight   — blue-tinted dark (truecolor only)   <- selected below
+#   rosepine     — muted mauve dark (truecolor only)
+#   oscura       — deep dark, purple accents (truecolor only)
+#
+# This is a *client-side* setting: `grok agent serve` streams events and the
+# connecting client renders them, so this theme applies when you run the TUI
+# inside the container (e.g. `railway run grok` / `docker exec ... grok`) or
+# when a client honors a server-suggested theme. Change it to your brand pick.
+# ----------------------------------------------------------------------------
+[ui]
+theme = "tokyonight"
+# auto follows the client OS appearance if you prefer:
+# theme = "auto"
+# auto_dark_theme = "tokyonight"
+# auto_light_theme = "grokday"
+show_thinking_blocks = true
+group_tool_verbs = true
+
+[features]
+# Server deployment: no anonymous telemetry, no interactive feedback prompts.
+telemetry = false
+feedback = false
+# Keep code-graph indexing on for better navigation on real repos.
+codebase_indexing = true
+# Set false only for firewalled / air-gapped deployments.
+remote_fetch = true
+
+[session]
+# Auto-compact the context window at this fill percentage.
+auto_compact_threshold_percent = 85
+# Load .envrc from project directories the agent works in.
+load_envrc = true
+
+[toolset.bash]
+# Foreground shell-command timeout (seconds) and captured-output cap (bytes).
+timeout_secs = 120.0
+output_byte_limit = 20000
