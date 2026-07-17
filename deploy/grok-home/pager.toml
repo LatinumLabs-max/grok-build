@@ -1,0 +1,59 @@
+# ============================================================================
+# Grok Build — appearance / layout (baked into $GROK_HOME/pager.toml)
+#
+# Fine-grained TUI look-and-feel. Every value has a built-in default; only the
+# keys set here override. This is the second half of the "colors & theme"
+# customization surface (the theme itself lives in config.toml [ui].theme).
+#
+# Like the theme, these apply to the TUI renderer, so they take effect when a
+# TUI client renders this server's sessions (e.g. running `grok` inside the
+# container). Tune to your design language.
+# ============================================================================
+
+[scrollback.layout]
+outer_vpad = 1          # vertical padding around the viewport
+outer_hpad_left = 2     # left margin  (min 1)
+outer_hpad_right = 2    # right margin (min 1)
+block_pad_left = 2      # gap between the accent line and content
+block_pad_right = 2
+
+[scrollback.scrollbar]
+enabled = true
+gap_left = 0
+gap_right = 0
+# Override the scrollbar colors to your palette ("none" = theme default):
+# scrollbar_fg = "none"
+# scrollbar_bg = "none"
+
+[scrollback.display]
+sticky_headers = true
+tab_width = 4
+expandable_indicator = true
+dim_accent = 0.5
+
+[scrollback.blocks.tool]
+muted_collapsed = true
+dim_details = true
+# Bullet before tool headers: none | dot | small-circle | circle
+#                              small-triangle | triangle | diamond
+bullet = "diamond"
+
+[scrollback.blocks.execute]
+first_lines = 2
+last_lines = 3
+accent_enabled = true
+header_style = "label"   # "label" (Run prefix) or "shell" ($ prefix)
+
+[scrollback.blocks.thinking]
+accent_enabled = true
+animate = true
+truncated_lines = 3
+
+[animation]
+fps = 30                # 1-60; higher = smoother accent animation, more CPU
+wave_rows = 32
+
+[terminal]
+# In a container/SSH context, inline rendering is often the safer choice.
+# "auto" | "always" | "never"
+alt_screen = "auto"

@@ -1,0 +1,8 @@
+# Keep the build context small. Do NOT exclude *.md — the pager crate embeds
+# its user-guide markdown via include_str! at build time, so those files must
+# be present in the build context.
+/target
+**/*.rs.bk
+.DS_Store
+.git
+.github
